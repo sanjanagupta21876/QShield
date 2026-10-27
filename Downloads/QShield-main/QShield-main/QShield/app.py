@@ -5,6 +5,8 @@ Phase 7: Professional UI/UX Enhancement
 import streamlit as st
 import pandas as pd
 from pathlib import Path
+from datetime import datetime
+import io
 
 # Core imports
 from core.database import (
@@ -29,6 +31,13 @@ from app_inventory import render_inventory_page
 from app_risk_analysis import render_risk_analysis_page
 from app_simulator import render_simulator_page
 from app_calculator import render_calculator_page
+from core.reports import (
+    generate_inventory_report,
+    generate_risk_assessment_report,
+    generate_scenario_report,
+    generate_migration_recommendations_report,
+    generate_comprehensive_report,
+)
 from components.forms import render_asset_intake_form, render_asset_edit_form
 from components.charts import (
     create_risk_distribution_chart,
@@ -376,89 +385,130 @@ def render_reports_page():
     
     report_type = st.radio(
         "Select Report Type",
-        ["Asset Inventory", "Risk Assessment Summary", "Migration Priority"],
+        ["Asset Inventory", "Risk Assessment", "Scenario Simulation", "Migration Recommendations", "Comprehensive Report"],
         horizontal=True,
     )
     
     if report_type == "Asset Inventory":
         st.markdown("#### Asset Inventory Report")
+        st.caption("Export complete cryptographic asset inventory with all metadata.")
+        
+        # Preview
         df = pd.DataFrame(all_assets)
         st.dataframe(df, use_container_width=True, hide_index=True)
         
-        if st.button("📥 Download CSV"):
-            csv = df.to_csv(index=False)
+        # Generate and download
+        if st.button("📥 Download Inventory CSV"):
+            csv_data = generate_inventory_report()
             st.download_button(
-                label="Download Asset Inventory",
-                data=csv,
-                file_name="qshield_inventory.csv",
+                label="Download Inventory Report",
+                data=csv_data,
+                file_name=f"qshield_inventory_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
                 mime="text/csv",
             )
     
-    elif report_type == "Risk Assessment Summary":
-        st.markdown("#### Risk Assessment Summary")
-        risk_data = []
-        for asset in all_assets:
-            assessment = evaluate_quantum_risk(
-                algorithm=asset["crypto_algorithm"],
-                key_size=asset["key_size"],
-                data_shelf_life_years=asset["data_shelf_life_years"],
-                crypto_role=asset.get("crypto_role"),
-            )
-            risk_data.append({
-                "Asset Name": asset["name"],
-                "Algorithm": asset["crypto_algorithm"],
-                "Risk Level": assessment.get("risk_level", "UNKNOWN"),
-                "Risk Score": assessment.get("risk_score", "N/A"),
-                "Quantum Vulnerable": assessment.get("quantum_vulnerable"),
-            })
+    elif report_type == "Risk Assessment":
+        st.markdown("#### Risk Assessment Report")
+        st.caption("Export asset-level quantum risk assessment results with classification and scoring.")
         
-        df = pd.DataFrame(risk_data)
+        # Generate report
+        csv_data = generate_risk_assessment_report()
+        
+        # Preview
+        df = pd.read_csv(io.StringIO(csv_data))
         st.dataframe(df, use_container_width=True, hide_index=True)
         
-        if st.button("📥 Download Risk Report"):
-            csv = df.to_csv(index=False)
-            st.download_button(
-                label="Download Risk Assessment",
-                data=csv,
-                file_name="qshield_risk_assessment.csv",
-                mime="text/csv",
-            )
+        # Download
+        st.download_button(
+            label="📥 Download Risk Assessment CSV",
+            data=csv_data,
+            file_name=f"qshield_risk_assessment_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
+        )
     
-    elif report_type == "Migration Priority":
-        st.markdown("#### Migration Priority Report")
-        risk_data = []
-        for asset in all_assets:
-            assessment = evaluate_quantum_risk(
-                algorithm=asset["crypto_algorithm"],
-                key_size=asset["key_size"],
-                data_shelf_life_years=asset["data_shelf_life_years"],
-                crypto_role=asset.get("crypto_role"),
-            )
-            rec = get_pqc_recommendation(
-                algorithm=asset["crypto_algorithm"],
-                key_size=asset["key_size"] or 0,
-                crypto_role=asset.get("crypto_role"),
-            )
-            risk_data.append({
-                "Asset Name": asset["name"],
-                "Algorithm": asset["crypto_algorithm"],
-                "Risk Level": assessment.get("risk_level", "UNKNOWN"),
-                "Priority": rec.get("priority", "N/A"),
-                "Target PQC": rec.get("target_pqc_algorithm", "N/A"),
-            })
+    elif report_type == "Scenario Simulation":
+        st.markdown("#### Scenario Simulation Report")
+        st.caption("Export scenario simulation results with planning margins and exposure analysis.")
         
-        df = pd.DataFrame(risk_data)
-        df = df.sort_values(by=["Risk Level", "Priority"], ascending=False)
+        # Scenario parameters
+        col1, col2 = st.columns(2)
+        with col1:
+            target_year = st.number_input("Target Year", min_value=2027, max_value=2045, value=2033)
+        with col2:
+            migration_years = st.number_input("Migration Duration (years)", min_value=1, max_value=15, value=3)
+        
+        # Generate report
+        csv_data = generate_scenario_report(
+            target_year=target_year,
+            migration_duration_years=migration_years,
+            current_year=2026,
+        )
+        
+        # Preview
+        df = pd.read_csv(io.StringIO(csv_data))
         st.dataframe(df, use_container_width=True, hide_index=True)
         
-        if st.button("📥 Download Priority Report"):
-            csv = df.to_csv(index=False)
-            st.download_button(
-                label="Download Migration Priority",
-                data=csv,
-                file_name="qshield_migration_priority.csv",
-                mime="text/csv",
-            )
+        # Download
+        st.download_button(
+            label="📥 Download Scenario Simulation CSV",
+            data=csv_data,
+            file_name=f"qshield_scenario_{target_year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
+        )
+    
+    elif report_type == "Migration Recommendations":
+        st.markdown("#### Migration Recommendations Report")
+        st.caption("Export migration recommendations with NIST PQC targets and priorities.")
+        
+        # Generate report
+        csv_data = generate_migration_recommendations_report()
+        
+        # Preview
+        df = pd.read_csv(io.StringIO(csv_data))
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        
+        # Download
+        st.download_button(
+            label="📥 Download Migration Recommendations CSV",
+            data=csv_data,
+            file_name=f"qshield_migration_recommendations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
+        )
+    
+    elif report_type == "Comprehensive Report":
+        st.markdown("#### Comprehensive Report")
+        st.caption("Export all data including inventory, risk assessment, scenario simulation, and migration recommendations.")
+        
+        # Scenario parameters
+        col1, col2 = st.columns(2)
+        with col1:
+            target_year = st.number_input("Target Year", min_value=2027, max_value=2045, value=2033)
+        with col2:
+            migration_years = st.number_input("Migration Duration (years)", min_value=1, max_value=15, value=3)
+        
+        # Generate report
+        csv_data = generate_comprehensive_report(
+            target_year=target_year,
+            migration_duration_years=migration_years,
+            current_year=2026,
+        )
+        
+        # Preview
+        df = pd.read_csv(io.StringIO(csv_data))
+        st.dataframe(df, use_container_width=True, hide_index=True)
+        
+        # Download
+        st.download_button(
+            label="📥 Download Comprehensive CSV",
+            data=csv_data,
+            file_name=f"qshield_comprehensive_{target_year}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv",
+            mime="text/csv",
+        )
+    
+    st.info(
+        "⚠️ **Note:** These CSV reports are for informational and planning purposes only. "
+        "They are not digitally signed or tamper-proof security reports."
+    )
 
 
 def render_about_page():
