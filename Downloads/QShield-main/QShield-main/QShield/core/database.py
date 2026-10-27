@@ -92,6 +92,13 @@ def insert_asset(conn: sqlite3.Connection, asset_data: Dict[str, Any]) -> int:
         The ID of the newly inserted row.
     """
     cursor = conn.cursor()
+    name = str(asset_data.get("name", "")).strip()
+    if not name:
+        raise ValueError("Asset name is required and cannot be empty.")
+    algo = str(asset_data.get("crypto_algorithm", "")).strip()
+    if not algo:
+        raise ValueError("Cryptographic algorithm is required and cannot be empty.")
+
     key_size = _sanitize_key_size(asset_data.get("key_size"))
     data_sensitivity = asset_data.get("data_sensitivity", "Medium").strip()
 
@@ -103,9 +110,9 @@ def insert_asset(conn: sqlite3.Connection, asset_data: Dict[str, Any]) -> int:
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                asset_data["name"].strip(),
+                name,
                 asset_data.get("system_name", "Default System").strip(),
-                asset_data["crypto_algorithm"].strip(),
+                algo,
                 asset_data.get("crypto_role", "Unknown / Unclassified").strip(),
                 key_size,
                 int(asset_data.get("data_shelf_life_years", 5)),
@@ -123,9 +130,9 @@ def insert_asset(conn: sqlite3.Connection, asset_data: Dict[str, Any]) -> int:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    asset_data["name"].strip(),
+                    name,
                     asset_data.get("system_name", "Default System").strip(),
-                    asset_data["crypto_algorithm"].strip(),
+                    algo,
                     asset_data.get("crypto_role", "Unknown / Unclassified").strip(),
                     0,  # Legacy integer sentinel for Not Applicable
                     int(asset_data.get("data_shelf_life_years", 5)),
@@ -183,6 +190,13 @@ def update_asset(conn: sqlite3.Connection, asset_id: int, asset_data: Dict[str, 
         True if the asset was found and updated, False otherwise.
     """
     cursor = conn.cursor()
+    name = str(asset_data.get("name", "")).strip()
+    if not name:
+        raise ValueError("Asset name is required and cannot be empty.")
+    algo = str(asset_data.get("crypto_algorithm", "")).strip()
+    if not algo:
+        raise ValueError("Cryptographic algorithm is required and cannot be empty.")
+
     key_size = _sanitize_key_size(asset_data.get("key_size"))
     data_sensitivity = asset_data.get("data_sensitivity", "Medium").strip()
 
@@ -201,9 +215,9 @@ def update_asset(conn: sqlite3.Connection, asset_id: int, asset_data: Dict[str, 
             WHERE id = ?
             """,
             (
-                asset_data["name"].strip(),
+                name,
                 asset_data.get("system_name", "Default System").strip(),
-                asset_data["crypto_algorithm"].strip(),
+                algo,
                 asset_data.get("crypto_role", "Unknown / Unclassified").strip(),
                 key_size,
                 int(asset_data.get("data_shelf_life_years", 5)),
@@ -228,9 +242,9 @@ def update_asset(conn: sqlite3.Connection, asset_id: int, asset_data: Dict[str, 
                 WHERE id = ?
                 """,
                 (
-                    asset_data["name"].strip(),
+                    name,
                     asset_data.get("system_name", "Default System").strip(),
-                    asset_data["crypto_algorithm"].strip(),
+                    algo,
                     asset_data.get("crypto_role", "Unknown / Unclassified").strip(),
                     0,
                     int(asset_data.get("data_shelf_life_years", 5)),
@@ -242,6 +256,29 @@ def update_asset(conn: sqlite3.Connection, asset_id: int, asset_data: Dict[str, 
         else:
             raise
 
+    conn.commit()
+    return cursor.rowcount > 0
+
+
+def update_asset_migration_status(conn: sqlite3.Connection, asset_id: int, new_status: str) -> bool:
+    """Update only the migration status of an asset using a parameterized query.
+
+    Args:
+        conn: SQLite connection.
+        asset_id: The ID of the asset to update.
+        new_status: The new migration status string.
+
+    Returns:
+        True if the asset was found and updated, False otherwise.
+    """
+    valid_statuses = {"Not Started", "Planning", "In Progress", "Completed", "Decommissioned"}
+    status_clean = str(new_status).strip()
+    if status_clean not in valid_statuses:
+        raise ValueError(
+            f"Invalid migration status '{new_status}'. Must be one of: {', '.join(sorted(valid_statuses))}."
+        )
+    cursor = conn.cursor()
+    cursor.execute("UPDATE assets SET migration_status = ? WHERE id = ?", (status_clean, asset_id))
     conn.commit()
     return cursor.rowcount > 0
 

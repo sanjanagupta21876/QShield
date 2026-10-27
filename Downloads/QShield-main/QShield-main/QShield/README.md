@@ -1,35 +1,43 @@
 # QShield — Quantum-Safe Migration Planner
 
-**IDEATHON 2026 Project**  
-*A software-based cybersecurity planning tool to assess cryptographic exposure to future quantum computing threats and prioritize post-quantum migration.*
+**Cybersecurity Planning & Post-Quantum Cryptography Migration Platform**  
+*A software-based planning tool to evaluate cryptographic exposure to future Cryptanalytically Relevant Quantum Computers (CRQCs) and prioritize post-quantum migration.*
 
 ---
 
-## 📖 Project Purpose & Core Principles
+## 📖 Problem Statement & Core Principles
 
-The advent of Cryptanalytically Relevant Quantum Computers (CRQCs) poses fundamental challenges to modern cryptography:
-- **Asymmetric Public-Key Cryptography** (e.g., RSA, ECDSA, ECDH, classical Diffie–Hellman) is vulnerable to polynomial-time breaking via **Shor's algorithm**.
-- **Symmetric Block Ciphers** (e.g., AES) and **Hash Functions** (e.g., SHA-256) are affected by **Grover's algorithm**, which quadratically speeds up brute-force searches (halving effective symmetric key bits), but they are not broken like public-key primitives.
-- Organizations face immediate risks from **Harvest Now, Decrypt Later (HNDL)** attacks targeting data with high confidentiality shelf-lives.
+The emergence of Cryptanalytically Relevant Quantum Computers (CRQCs) presents a fundamental challenge to modern public-key cryptography:
 
-### Planning Margin Heuristic
-QShield uses a timeline evaluation heuristic derived from Mosca's Theorem:
+1. **Shor's Algorithm (Polynomial-Time Asymmetric Break):**
+   - Classical public-key cryptography (RSA, ECDSA, ECDH, Diffie-Hellman, DSA) relies on integer factorization or discrete logarithm problems.
+   - Shor's algorithm solves these problems in polynomial time on a CRQC, breaking the mathematical foundations of classical key exchange and digital signatures.
+2. **Grover's Algorithm (Quadratic Symmetric Halving):**
+   - Symmetric block ciphers (AES, 3DES, ChaCha20) and hash functions (SHA-256, SHA-512) are affected by Grover's algorithm, which provides a quadratic speedup for unstructured brute-force search.
+   - This effectively halves key search complexity ($k \to k/2$). AES-256 retains 128 bits of quantum security (meeting the NIST post-quantum security floor), whereas AES-128 is reduced to 64 bits of effective security.
+3. **Harvest Now, Decrypt Later (HNDL):**
+   - Adversaries can intercept and archive encrypted communications today.
+   - Once a CRQC is built, adversaries can decrypt stored ciphertext retroactively.
+   - Primitives protecting data with extended confidentiality lifetimes ($X \ge 10$ years) face an immediate operational risk today.
+
+### Mosca's Theorem Planning Margin Heuristic
+QShield implements the timeline planning heuristic derived from Michele Mosca's Theorem:
 $$\text{Planning Margin} = Z - (X + Y)$$
 where:
-- **$X$** = Required confidentiality duration in years (data shelf-life).
-- **$Y$** = Estimated migration duration in years.
-- **$Z$** = Hypothetical years until the quantum-threat horizon (CRQC emergence).
+- **$X$** = Required data confidentiality lifetime in years (shelf-life).
+- **$Y$** = Estimated time in years required to complete post-quantum migration.
+- **$Z$** = Hypothetical years until the quantum threat horizon emerges ($Z = \text{Target Year} - 2026$).
 
 **Interpretation:**
-- **Negative ($< 0$):** The combined confidentiality and migration timeline ($X + Y$) extends beyond the assumed threat horizon ($Z$).
-- **Zero ($= 0$):** No planning buffer exists under these assumptions.
-- **Positive ($> 0$):** A positive planning buffer exists under these assumptions.
+- **Negative ($< 0$):** Combined timeline ($X + Y$) extends beyond assumed threat horizon ($Z$). Indicates urgent migration timeline pressure.
+- **Zero ($= 0$):** Zero timeline buffer exists under the specified assumptions.
+- **Positive ($> 0$):** A planning buffer cushion exists under the specified assumptions.
 
 > **Important Planning Heuristic Disclaimer:**  
-> The Planning Margin is a simplified planning heuristic, not a validated statistical probability of compromise or a prediction of when quantum computers will break cryptography.
+> The Planning Margin is a simplified decision-support planning heuristic, NOT an empirical prediction of when quantum computers will be constructed or a validated probability of compromise.
 
-> **System Scope vs. Primitive Scope:**  
-> Assessing an individual algorithm as quantum-resilient does not label an entire system quantum-safe. End-to-end security requires that all components across key establishment, signatures, transport certificates, and symmetric protection are post-quantum secure.
+> **System Scope vs. Primitive Scope Disclaimer:**  
+> Evaluating an individual cryptographic primitive as quantum-resilient does NOT certify an entire application or network channel as quantum-safe. End-to-end security requires that all pipeline components (key encapsulation, digital signatures, transport certificates, symmetric encryption, and hashes) are protected.
 
 ---
 
@@ -38,32 +46,37 @@ where:
 ```
 qshield/
 │
-├── app.py                     # Minimal working Streamlit application entrypoint
+├── app.py                     # Streamlit application entrypoint & multi-tab UI
+├── demo.py                    # Standalone demonstration helper & summary CLI script
 ├── requirements.txt           # Project dependencies
-├── README.md                  # Setup, architecture, and usage guide
-├── .gitignore                 # Python, IDE, cache, and SQLite ignore rules
-├── pytest.ini                 # Pytest configuration and pythonpath resolution
+├── README.md                  # Comprehensive documentation, setup guide & demo script
+├── .gitignore                 # Exclusion rules for caches, virtualenvs, and local SQLite data
+├── pytest.ini                 # Pytest pythonpath configuration
 │
-├── core/                      # Core analytical & business logic package
+├── core/                      # Analytical and business logic engine package
 │   ├── __init__.py            # Package metadata & version
-│   ├── database.py            # SQLite connection, schema initialization & CRUD
-│   ├── risk_engine.py         # Quantum risk scoring (Shor / Grover / PQC / Unknown)
-│   ├── scenario_engine.py     # Threat horizon simulation (Planning Margin: Z - (X + Y))
-│   ├── recommendations.py     # Role-aware NIST PQC migration target guidance
-│   └── validation.py          # Input validation for cryptographic assets & roles
+│   ├── database.py            # SQLite schema initialization, parameterized CRUD, status updater
+│   ├── risk_engine.py         # 7-dimension explainable quantum risk evaluation (Shor/Grover/PQC/Unknown)
+│   ├── scenario_engine.py     # Mosca's Theorem timeline simulator (Z - (X + Y)) & multi-scenario comparison
+│   ├── recommendations.py     # Role-aware NIST PQC migration targets (FIPS 203, 204, 205, SP 800-38D)
+│   ├── validation.py          # Input validation, parameter boundaries, and role compatibility checks
+│   ├── export.py              # RFC 4180 CSV export with formula injection sanitization (CWE-1236)
+│   └── demo_data.py           # Curated 10-asset synthetic dataset & duplicate-safe loader
 │
-├── components/                # Streamlit UI building blocks & visualizations
+├── components/                # Modular Streamlit UI building blocks & Plotly visualizations
 │   ├── __init__.py            # Package declaration
-│   ├── charts.py              # Plotly chart generators (risk distribution, scenario breakdown)
-│   └── forms.py               # Streamlit asset intake form with role selection & validation
+│   ├── charts.py              # Plotly chart generators (risk distribution, margin bars, comparison)
+│   └── forms.py               # Streamlit intake and edit forms with role auto-suggestion
 │
-├── tests/                     # Automated unit test suite (Pytest)
+├── tests/                     # Automated test suite (79 Pytest unit & integration tests)
 │   ├── __init__.py            # Package declaration
-│   ├── test_database.py       # Persistence layer & isolated schema tests
-│   ├── test_recommendations.py# Role-aware migration recommendation tests
-│   ├── test_risk_engine.py    # Quantum risk classification & unknown-handling tests
-│   ├── test_scenario_engine.py# Mosca's Theorem planning margin unit tests
-│   └── test_validation.py     # Form, role, and input data validation tests
+│   ├── test_integration_phase9.py # Complete 10-step workflow, edge cases, consistency, and CSV tests
+│   ├── test_demo_data.py      # Synthetic demonstration dataset and duplicate-prevention tests
+│   ├── test_database.py       # Persistence layer & schema migration tests
+│   ├── test_risk_engine.py    # Algorithmic classification, explainability, and input bounds tests
+│   ├── test_scenario_engine.py# Mosca margin calculations, overrides, and multi-scenario tests
+│   ├── test_validation.py     # Parameter validation and role compatibility tests
+│   └── test_recommendations.py# Role-aware migration guidance tests
 │
 └── data/                      # Local data directory for SQLite database storage
     └── .gitkeep               # Directory placeholder
@@ -73,33 +86,42 @@ qshield/
 
 ## 🛠️ Technology Stack
 
-- **Language:** Python 3.11+
-- **Frontend / UI:** Streamlit
+- **Programming Language:** Python 3.11+
+- **User Interface:** Streamlit
 - **Data Manipulation:** Pandas
-- **Interactive Visualizations:** Plotly
-- **Storage:** SQLite3 (standard library)
-- **Testing:** Pytest
+- **Interactive Visualizations:** Plotly Graph Objects
+- **Storage Layer:** SQLite3 (standard library, local zero-configuration persistence)
+- **Test Framework:** Pytest
 
 ---
 
-## 🚀 Installation & Setup (Windows)
+## 🚀 Clean Installation & Setup
 
-Follow these exact steps in PowerShell:
-
-### 1. Navigate to Repository Root
+### Windows (PowerShell)
 ```powershell
+# 1. Clone repository and navigate to root
 cd C:\QShield
-```
 
-### 2. (Recommended) Create and Activate Virtual Environment
-```powershell
+# 2. (Recommended) Create and activate a virtual environment
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
+
+# 3. Install dependencies
+python -m pip install --upgrade pip
+pip install -r requirements.txt
 ```
 
-### 3. Install Dependencies
-```powershell
-python -m pip install --upgrade pip
+### Linux & macOS (Bash / Zsh)
+```bash
+# 1. Clone repository and navigate to root
+cd /path/to/QShield
+
+# 2. (Recommended) Create and activate a virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3. Install dependencies
+python3 -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
@@ -107,92 +129,146 @@ pip install -r requirements.txt
 
 ## 🧪 Running Automated Tests
 
-Run the full Pytest test suite from the project root:
+Run the full automated test suite (79 tests) from the project root:
+
 ```powershell
-pytest
+python -m pytest -q
 ```
-Expected output:
+
+**Expected output:**
 ```text
-============================= 62 passed in 0.69s ==============================
+79 passed in ~4.5s
 ```
+
+All tests run in isolated environments (using in-memory or temporary databases) and verify schema initialization, mathematical margin formulas, edge cases, unkeyed primitives, CSV exports, and the complete 10-step workflow.
 
 ---
 
 ## 🖥️ Launching the Application
 
-Run the Streamlit application with:
-```powershell
-streamlit run app.py
-```
+Start the Streamlit application from the root directory:
 
-Once launched, access the application in your browser at:
-`http://localhost:8501`
+```powershell
+streamlit run QShield/app.py
+```
+*(Or navigate into `QShield` and run `streamlit run app.py`)*
+
+Once launched, access the application in your browser at:  
+👉 **`http://localhost:8501`**
 
 ---
 
-## 📌 Implementation Status: Implemented vs. Planned Features
+## ✨ Loading Demonstration Data
 
-### Currently Implemented (Phases 1, 2, 3, 4 & 5 Baseline)
-- [x] **Modular Architecture**: Decoupled `core/` backend and `components/` UI layer.
-- [x] **Interactive Quantum-Threat Scenario Simulator (Phase 5)**:
-  - **Dynamic Timeline Modeling**: User controls for hypothetical CRQC emergence year ($Z = \text{Target Year} - 2026$) and estimated organizational migration duration ($Y$).
-  - **Flexible Inventory Scoping & Custom Overrides**: Assess all registered assets, filter by system, select custom asset subsets, and apply asset-specific migration duration overrides for high-complexity legacy cryptosystems.
-  - **Rigorous Exposure Categorization**: Confirmed quantum exposure strictly requires both mathematical vulnerability (e.g. Shor's algorithm) AND a negative planning margin ($Z - (X + Y) < 0$). Unrecognized mechanisms are tracked under `requires_assessment` and never counted as confirmed exposures.
-  - **Plotly Visualizations**:
-    1. Distribution of planning margins (Negative, Zero, Positive).
-    2. Scenario exposure breakdown donut chart (Confirmed Exposed, Requires Assessment, Buffer Maintained).
-    3. Asset-level planning margin comparison horizontal bar chart with $x=0$ reference line.
-    4. Multi-scenario grouped bar chart comparing exposure shifts across hypothetical CRQC emergence years.
-  - **Multi-Scenario Comparison Dashboard**: Real-time side-by-side comparison across user-configured threat horizons (e.g., 2029 [Aggressive], 2033 [Moderate], 2038 [Conservative]).
-  - **Decision-Support Planning Disclaimer**: Explicitly framed as a decision-support heuristic, not a calendar prediction or probability-of-compromise model.
-- [x] **Explainable Quantum Risk Assessment (Phase 4)**:
-  - **7-Dimension Asset Explainability Profile**:
-    1. Algorithm and cryptographic role.
-    2. Classification, quantum vulnerability status, and heuristic risk score.
-    3. Quantum threat relevance (polynomial-time Shor's factoring/discrete log vs. Grover's quadratic key search halving).
-    4. Scientific assumptions and heuristic limitations.
-    5. Confidentiality lifetime implications and Harvest Now, Decrypt Later (HNDL) exposure for key establishment.
-    6. Assessment rigor categorization (`Confirmed`, `Heuristic`, or `Requires Additional Information`).
-    7. Clear, actionable next planning or migration recommendations (ML-KEM, ML-DSA, SLH-DSA, AES-256).
-  - **Vulnerability vs. Timeline Exposure Distinction**: Explicitly decouples intrinsic mathematical vulnerability from timeline planning margins ($Z - (X + Y)$), noting that positive margins do not guarantee safety and negative margins do not imply empirical compromise today.
-  - **Non-Alarming, Objective Language**: Avoids apocalyptic framing, arbitrary compromise probabilities, and unexplained risk numbers.
-  - **Explainable Assessment UI View**: Dedicated `🛡️ Explainable Risk Assessment` tab providing executive-level inventory metrics, core cryptanalytic educational cards, and an interactive asset-level inspector.
-- [x] **Database & Inventory Management Layer (Phase 3)**:
-  - SQLite schema initialized under `data/qshield.db` with complete parameterized CRUD operations.
-  - Key size applicability handling: safely handles unkeyed primitives (hashes like SHA-256) where key size is not applicable without failing constraints.
-  - Search, filter, and sorting engine (`search_assets`) supporting text search across names/systems/algorithms, exact filtering by role, algorithm, and migration status, and multi-attribute sorting.
-  - Safe schema migrations preserving existing asset data when updating columns.
-- [x] **Asset Inspection, Editing & Destruction Safety (Phase 3)**:
-  - Interactive asset detail inspection cards displaying cryptographic metadata, quantum risk ratings, and migration recommendations.
-  - In-place asset record editing with full form validation.
-  - Confirmed destructive deletion preventing accidental asset removal.
-- [x] **Robust Cryptographic Classification (Phase 2)**:
-  - Supports and distinctly classifies 15 canonical algorithm families: RSA, ECDSA, ECDH, Classical Diffie-Hellman, DSA, AES, 3DES, ChaCha20, SHA-256, SHA-384, SHA-512, SHA-3, ML-KEM, ML-DSA, and SLH-DSA.
-  - Robust name normalization handling spacing, hyphens, underscores, and casing without unsafe substring collisions.
-  - Distinguishes mechanism categories: Public-key Key Establishment, Public-key Digital Signatures, Symmetric Encryption, Cryptographic Hashes, and Standardized PQC.
-  - Distinguishes operational roles for PQC: ML-KEM (Key Establishment / KEM) vs. ML-DSA & SLH-DSA (Digital Signatures).
-- [x] **Explainable Risk Engine & Heuristic Index (Phases 2 & 4)**:
-  - Transparent threat differentiation: Shor's algorithm for public-key vs. Grover's algorithm for symmetric ciphers and hashes.
-  - Evaluates Harvest Now, Decrypt Later (HNDL) exposure for key establishment with extended data confidentiality shelf-life ($X \ge 10$).
-  - Evaluates symmetric security margins against the NIST 128-bit quantum security floor under Grover's algorithm.
-  - Includes explicit documentation of scoring methodology, scientific assumptions, and heuristic limitations in structured output.
-- [x] **Validation & Safety Enforcement (Phases 2, 3 & 5)**:
-  - Algorithm-role compatibility validation rejecting mismatched combinations (e.g., AES used for signatures or ML-KEM used for signing).
-  - Strict parameter validation rejecting non-positive key sizes (when applicable), negative shelf-lives, past target years, negative migration durations, and invalid types.
-- [x] **Safe Unknown Handling**: Unrecognized algorithms return an explicit `UNKNOWN` / `INSUFFICIENT_INFORMATION` classification with manual audit recommendation rather than assuming vulnerability or safety.
-- [x] **Planning Margin Heuristic**: $Z - (X + Y)$ implemented and tested in `core/scenario_engine.py`.
-- [x] **Role-Aware Recommendations**: Tailors targets to key establishment (ML-KEM), digital signatures (ML-DSA, SLH-DSA), symmetric encryption (AES-256), and hashing (SHA-256).
-- [x] **Interactive Streamlit Interface**:
-  - System status panel verifying module health.
-  - Complete asset inventory management tab with live search, filters, sorting, Plotly risk distribution chart, and edit/delete workflows.
-  - Dedicated Explainable Quantum Risk Assessment dashboard with overall summary metrics and 7-dimension asset inspector.
-  - Interactive Threat Scenario Simulator tab with dynamic sliders, scope filtering, per-asset overrides, Plotly margin distribution, exposure breakdown, horizontal margin comparison, and multi-scenario comparison.
-  - Interactive risk & recommendation calculator with algorithm-role defaults, compatibility warnings, and expandable assumptions/limitations viewer.
-- [x] **Isolated Unit Tests**: 62 comprehensive unit tests covering all core modules, database operations, classifications, explainability dimensions, and scenario engine simulations.
+QShield includes a curated, realistic synthetic demonstration dataset of 10 cryptographic assets representing various algorithm families, operational roles, confidentiality lifetimes, and migration statuses.
 
-### Planned for Subsequent Development Phases (Not Yet in UI)
-- [ ] **End-to-End Migration Timeline Planner**: Interactive scheduling tools for managing organizational migration milestones.
-- [ ] **Automated Cryptographic Discovery**: Connectors/parsers to discover certificates and cipher suites from network endpoints or source repositories.
-- [ ] **Report Generation**: Exporting compliance and migration audit reports to CSV and PDF formats.
+### Option A: From the Web UI (Recommended)
+1. Open the application at `http://localhost:8501`.
+2. In the left **Sidebar**, expand **"✨ Load Demonstration Dataset"**, or open **"✨ Demonstration Dataset Controls"** in the **Asset Inventory** tab.
+3. Click **"🚀 Load Demo Assets"**.
+   - *Duplicate Safety:* Clicking this repeatedly will skip existing items and will **never create duplicate records**.
+   - *Reset Option:* Checking the box *"Purge existing inventory before loading demo data"* will wipe existing records and reload fresh demo data.
 
+### Option B: From the Command Line
+```powershell
+# Populate demo assets safely (skipping duplicates)
+python demo.py
 
+# Or purge existing assets and reload demo data fresh
+python demo.py --clear
+```
+
+---
+
+## 🎬 Step-by-Step Demonstration Script
+
+Follow this 10-step sequence to demonstrate the complete capabilities of QShield:
+
+### Step 1: The Problem QShield Addresses
+- **Action:** Open Tab 1 (`📋 Overview & Architecture`).
+- **Talking Points:** Explain that classical asymmetric cryptography (RSA, ECC, DH) is mathematically vulnerable to Shor's algorithm on a future CRQC. Symmetric ciphers and hashes are affected by Grover's algorithm (effective key search halved). Point out the **Harvest Now, Decrypt Later (HNDL)** risk for long-lived data.
+
+### Step 2: The Cryptographic Asset Inventory
+- **Action:** Navigate to Tab 2 (`🗄️ Asset Inventory`). Load the synthetic demonstration dataset if empty.
+- **Talking Points:** Show how assets are organized across systems, cryptographic algorithms, operational roles, key sizes, confidentiality lifetimes ($X$), and migration statuses. Demonstrate live substring search (e.g., search for `"Banking"` or `"Cloud"`) and filtering by operational role or algorithm.
+
+### Step 3: Example Cryptographic Risk Assessment
+- **Action:** In Tab 2, select asset `[DEMO] Synthetic Core Banking TLS Certificate` (RSA-2048, $X=12$).
+- **Talking Points:** Show that the risk engine calculates qualitative risk (`CRITICAL`, score `9.5/10.0`), identifying it as an asymmetric key-establishment primitive vulnerable to Shor's algorithm.
+
+### Step 4: Transparent Reasoning & Cryptanalysis Principles
+- **Action:** Navigate to Tab 3 (`🛡️ Explainable Risk Assessment`). Review the executive summary cards:
+  - Shor-Vulnerable Public-Key
+  - Grover-Affected Symmetric/Hash
+  - Standardized PQC
+  - Unclassified / Audit Needed
+- **Talking Points:** Note that every asset belongs to a clear, explainable cryptanalytic category. Explain the difference between Shor's factoring attack and Grover's search space halving.
+
+### Step 5: The Harvest Now, Decrypt Later (HNDL) Threat
+- **Action:** In Tab 3's Asset Inspector, compare:
+  1. `[DEMO] Synthetic Core Banking TLS Certificate` (RSA, Key Establishment, $X=12$): Tagged as **CRITICAL HNDL Urgent** because intercepted ciphertext can be decrypted retroactively.
+  2. `[DEMO] Synthetic Mobile App Auth Token Signer` (ECDSA, Digital Signature, $X=2$): While vulnerable to Shor's algorithm, historical signatures cannot be "harvested and decrypted".
+- **Talking Points:** Emphasize that key exchange requires earlier migration than digital signatures for long-lived confidentiality.
+
+### Step 6: Threat Horizon Scenario Modeling (Mosca's Heuristic)
+- **Action:** Navigate to Tab 4 (`🔮 Threat Scenario Simulator`). Set:
+  - Hypothetical CRQC Threat Horizon Year: `2033` ($Z = 7$ years).
+  - Estimated Migration Duration ($Y$): `3` years.
+- **Talking Points:** Review the top metric cards. Explain Mosca's Theorem formula: $\text{Planning Margin} = Z - (X + Y)$. Point out assets with negative planning margins (e.g., $7 - (12+3) = -8$ years).
+
+### Step 7: Changing Migration Assumptions
+- **Action:** Adjust the migration duration slider $Y$ from `3` to `6` years, or open "Optional Asset-Specific Migration Overrides" to give legacy mainframe systems a higher $Y$.
+- **Talking Points:** Observe how increasing migration duration shifts positive buffer assets into the negative margin zone. Show the multi-scenario comparison bar chart comparing horizons `2029`, `2033`, and `2038`.
+
+### Step 8: Role-Aware Migration Guidance & Status Tracking
+- **Action:** Inspect migration recommendations across primitive types:
+  - Key Establishment $\to$ NIST FIPS 203 **ML-KEM-768** (Immediate priority)
+  - Digital Signatures $\to$ NIST FIPS 204 **ML-DSA-65** / FIPS 205 **SLH-DSA** (High priority)
+  - Symmetric Ciphers $\to$ NIST SP 800-38D **AES-256-GCM** (Maintain $\ge 128$ bits)
+- **Talking Points:** Return to Tab 2 and update an asset's migration status from `Not Started` to `In Progress` using the Quick Status Updater.
+
+### Step 9: Audit Report Export
+- **Action:** Click the **"📥 Export Inventory (CSV)"** button in Tab 2, **"📥 Export Risk Assessment Report (CSV)"** in Tab 3, or **"📥 Export Scenario Simulation Report (CSV)"** in Tab 4.
+- **Talking Points:** Open the downloaded CSV in Excel or a text editor. Highlight that formulas (`=`, `+`, `-`, `@`) and special characters are safely escaped, ensuring compliance-ready, discrepancy-free export.
+
+### Step 10: Limitations & Intended Use of the Application
+- **Action:** Review the disclaimers on Tab 1 and in the assumptions panels.
+- **Talking Points:** Conclude by reiterating that QShield is a decision-support heuristic planning tool, not a cryptographic oracle. Emphasize that evaluating a primitive does not replace end-to-end cryptographic architecture reviews.
+
+---
+
+## 📌 Features Actually Implemented
+
+- [x] **Local SQLite Persistence Layer**: Fully parameterized queries, safe migrations, and ACID-compliant CRUD operations.
+- [x] **Comprehensive Cryptographic Asset Inventory**: Search across names/systems/algorithms, exact filtering, and sorting.
+- [x] **Role & Parameter Validation**: Input validation rejecting negative lifetimes, non-positive key sizes (when applicable), and algorithm-role mismatches.
+- [x] **Safe Unknown Handling**: Unrecognized or proprietary mechanisms return explicit `UNKNOWN` / `INSUFFICIENT_INFORMATION` and are excluded from confirmed exposures.
+- [x] **Explainable Quantum Risk Engine**: Transparent qualitative scoring distinguishing Shor's algorithm from Grover's algorithm.
+- [x] **7-Dimension Asset Profiling**: Explains identity, risk level, threat relevance, HNDL impact, vulnerability vs. timeline distinction, assessment rigor, and next action.
+- [x] **Interactive Threat Horizon Simulator**: Mosca's planning margin heuristic ($Z - (X + Y)$) with dynamic sliders, scope filtering, and per-asset overrides.
+- [x] **Multi-Scenario Comparison**: Grouped Plotly visual comparisons across user-configured threat horizon target years.
+- [x] **Role-Aware NIST PQC Recommendations**: Actionable targets aligned with FIPS 203, FIPS 204, FIPS 205, and SP 800-38D.
+- [x] **Migration Status Management**: In-place form updates and atomic quick status transitions.
+- [x] **Audit-Ready Report Generation**: RFC 4180 CSV export for inventory, risk assessments, and scenario models with formula injection sanitization (CWE-1236).
+- [x] **Curated Synthetic Demonstration Dataset**: 10 pre-configured synthetic assets with duplicate-safe loading and optional clean resets.
+
+---
+
+## ⚠️ Known Limitations & Scope Boundaries
+
+1. **Primitive-Level Scope:**  
+   QShield assesses individual cryptographic primitives. A system evaluated with quantum-resilient primitives is not certified quantum-safe end-to-end unless all surrounding protocol handshakes, certificates, RNGs, and modes of operation are post-quantum secure.
+2. **Simplified Timeline Heuristic:**  
+   Mosca's formula $Z - (X + Y)$ is a decision-support planning model. It is not an empirical forecast of when quantum hardware will achieve fault tolerance or a statistical probability of compromise.
+3. **Implementation Vulnerabilities Not Evaluated:**  
+   QShield does not assess implementation flaws such as side-channel leakage, timing attacks, weak random number generation, or improper certificate validation.
+4. **Report Formats:**  
+   Audit export is currently implemented in RFC 4180 CSV. Direct PDF generation is not currently included.
+
+---
+
+## 🛡️ Security & Cryptographic Disclaimers
+
+- **Non-Alarmist Framing:** High risk scores represent planning urgency for long-lived data under mathematical Shor vulnerability, not an indication that an asset has been compromised today.
+- **Data Privacy:** QShield operates entirely offline against a local SQLite database (`data/qshield.db`). No telemetry, cryptographic keys, or proprietary data are transmitted over the network.
+- **Decision-Support Only:** Recommendations should be validated by organizational cryptographic architects and aligned with relevant regulatory standards (NIST, BSI, ANSSI, CNSA 2.0).

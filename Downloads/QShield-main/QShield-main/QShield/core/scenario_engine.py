@@ -250,6 +250,8 @@ def simulate_quantum_threat_scenario(
         "requires_assessment_count": len(requires_assessment_assets),
         "confirmed_exposed_assets_count": confirmed_exposed_count,
         "exposed_assets_count": confirmed_exposed_count,  # Backwards compatibility alias
+        "resilient_or_buffered_count": total_assets - confirmed_exposed_count - len(requires_assessment_assets),
+        "buffer_maintained_count": total_assets - confirmed_exposed_count - len(requires_assessment_assets),
         "requires_assessment_negative_margin_count": requires_assessment_negative_margin_count,
         "exposure_percentage": round(exposure_percentage, 1),
         "minimum_planning_margin": min_margin,

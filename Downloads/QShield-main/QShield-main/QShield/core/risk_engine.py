@@ -358,15 +358,9 @@ def evaluate_quantum_risk(
         Structured dictionary containing risk_level, risk_score, quantum_vulnerable flag,
         assumptions, limitations, and explainable reasoning.
     """
-    # 1. Type and parameter validation
+    # 1. Parameter type and range validation
     if algorithm is None or not isinstance(algorithm, str) or not algorithm.strip():
         raise ValueError("Cryptographic algorithm name is required and must be a non-empty string.")
-
-    if type(key_size) is bool or not isinstance(key_size, int):
-        raise TypeError(f"Key size must be an integer, got {type(key_size).__name__}.")
-
-    if key_size <= 0:
-        raise ValueError(f"Key size must be a positive integer, got {key_size}.")
 
     if type(data_shelf_life_years) is bool or not isinstance(data_shelf_life_years, int):
         raise TypeError(f"Data shelf-life must be an integer, got {type(data_shelf_life_years).__name__}.")
@@ -376,6 +370,20 @@ def evaluate_quantum_risk(
 
     family, mechanism_type = classify_cryptographic_primitive(algorithm)
     crypto_category = get_cryptographic_category(family, crypto_role)
+
+    # Key size validation: distinguish keyed algorithms from unkeyed primitives (hashes)
+    is_hash = (mechanism_type == "HASH_FUNCTION" or (crypto_role and crypto_role.strip() == "Cryptographic Hash"))
+    if is_hash:
+        if key_size is not None:
+            if type(key_size) is bool or not isinstance(key_size, int):
+                raise TypeError(f"Key size must be an integer, got {type(key_size).__name__}.")
+            if key_size < 0:
+                raise ValueError(f"Key size cannot be negative, got {key_size}.")
+    else:
+        if type(key_size) is bool or not isinstance(key_size, int):
+            raise TypeError(f"Key size must be an integer, got {type(key_size).__name__}.")
+        if key_size <= 0:
+            raise ValueError(f"Key size must be a positive integer, got {key_size}.")
 
     TIMELINE_EXPOSURE_EXPLANATION = (
         "Cryptographic vulnerability is an intrinsic mathematical property of the algorithm under quantum cryptanalysis "
@@ -715,7 +723,7 @@ def evaluate_quantum_risk(
 
     # Case 4: Cryptographic Hash Functions
     if mechanism_type == "HASH_FUNCTION":
-        score = 1.0 if key_size >= 384 or family in {"SHA-384", "SHA-512", "SHA-3"} else 1.5
+        score = 1.0 if (key_size is not None and key_size >= 384) or family in {"SHA-384", "SHA-512", "SHA-3"} else 1.5
         reasoning = (
             f"{algorithm} is a cryptographic hash function not broken by Shor's algorithm. "
             "Pre-image resistance under Grover's algorithm remains at >= 128 bits of security, "

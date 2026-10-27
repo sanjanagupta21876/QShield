@@ -230,7 +230,15 @@ def create_scenario_comparison_chart(scenario_results: list) -> go.Figure:
     ]
     requires_assessment = [s.get("requires_assessment_count", 0) for s in scenario_results]
     buffer_maintained = [
-        s.get("positive_margin_count", 0) + s.get("zero_margin_count", 0)
+        s.get(
+            "resilient_or_buffered_count",
+            max(
+                0,
+                s.get("total_assets_evaluated", 0)
+                - s.get("confirmed_exposed_assets_count", s.get("exposed_assets_count", 0))
+                - s.get("requires_assessment_count", 0),
+            ),
+        )
         for s in scenario_results
     ]
 
@@ -253,7 +261,7 @@ def create_scenario_comparison_chart(scenario_results: list) -> go.Figure:
                 textposition="auto",
             ),
             go.Bar(
-                name="Timeline Buffer Maintained (>= 0)",
+                name="Resilient / Buffer Maintained",
                 x=scenario_labels,
                 y=buffer_maintained,
                 marker_color="#2563EB",
@@ -282,10 +290,21 @@ def create_scenario_exposure_breakdown_chart(
     buffer_maintained: int,
 ) -> go.Figure:
     """Create a donut chart distinguishing confirmed exposure from unknown mechanisms and safe assets."""
+    if confirmed_exposed + requires_assessment + buffer_maintained == 0:
+        fig = go.Figure()
+        fig.update_layout(
+            title="Scenario Exposure Categorization (No Assets)",
+            template="plotly_white",
+            margin=dict(l=20, r=20, t=40, b=20),
+            height=320,
+            annotations=[dict(text="No Assets in Scope", x=0.5, y=0.5, font_size=14, showarrow=False)],
+        )
+        return fig
+
     labels = [
         "Confirmed Exposure (Vuln & Neg Margin)",
         "Requires Assessment (Unclassified / Incompatible)",
-        "Timeline Buffer Maintained / Quantum-Safe",
+        "Resilient / Buffer Maintained",
     ]
     values = [confirmed_exposed, requires_assessment, buffer_maintained]
     colors = ["#DC2626", "#64748B", "#16A34A"]
